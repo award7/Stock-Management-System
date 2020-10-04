@@ -5,6 +5,9 @@ import manipulation as mp
 import sqlite3
 
 from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QRadioButton
+from PyQt5.QtWidgets import QGroupBox
+from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtWidgets import QSpinBox
@@ -70,7 +73,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         self.st = Container0()
         exitAct = QAction(QIcon('exit_icon.png'), 'Exit', self)
-        exitAct.setShortcut('Ctrl+Q')
+        exitAct.setShortcut('Ctrl+W')
         exitAct.setStatusTip('Exit application')
         exitAct.triggered.connect(self.close)
 
@@ -88,26 +91,22 @@ class Container0(QWidget):
         super(Container0, self).__init__()
         self.leftlist = QListWidget()
         self.leftlist.setFixedWidth(250)
-        self.leftlist.insertItem(0, 'Check-in Samples')
-        self.leftlist.insertItem(1, 'Checkout Samples')
-        self.leftlist.insertItem(2, 'View Samples')
-        self.leftlist.insertItem(3, 'View Sample History')
+        self.leftlist.insertItem(0, 'Check-in/Checkout Samples')
+        self.leftlist.insertItem(1, 'View Samples')
+        self.leftlist.insertItem(2, 'View Sample History')
 
         self.stack1 = QWidget()
         self.stack2 = QWidget()
         self.stack3 = QWidget()
-        self.stack4 = QWidget()
 
         self.stack1UI()
         self.stack2UI()
         self.stack3UI()
-        self.stack4UI()
 
         self.Stack = QStackedWidget(self)
         self.Stack.addWidget(self.stack1)
         self.Stack.addWidget(self.stack2)
         self.Stack.addWidget(self.stack3)
-        self.Stack.addWidget(self.stack4)
 
         hbox = QHBoxLayout(self)
         hbox.addWidget(self.leftlist)
@@ -115,11 +114,29 @@ class Container0(QWidget):
 
         self.setLayout(hbox)
         self.leftlist.currentRowChanged.connect(self.display)
-        self.setGeometry(500,350, 200, 200)
+        self.setGeometry(500, 350, 200, 200)
+
+        # add signals
+        self.signals()
+
+        # set initial values
+        self.initial_values()
 
 
     def stack1UI(self):
         layout = QFormLayout()
+        hbox = QHBoxLayout()
+
+        # check-in radio button
+        self.checkin = QRadioButton()
+        self.checkin.setText("Check-In")
+        hbox.addWidget(self.checkin)
+
+        # checkout radio button
+        self.checkout = QRadioButton()
+        self.checkout.setText("Checkout")
+        hbox.addWidget(self.checkout)
+        layout.addRow("Status", hbox)
 
         # study combobox
         self.study = QComboBox()
@@ -135,6 +152,8 @@ class Container0(QWidget):
 
         # sample ID
         self.sample_id = QLineEdit()
+        msg = "Do not include the study number"
+        self.sample_id.setStatusTip(msg)
         layout.addRow("Sample ID", self.sample_id)
 
         # sample quantity
@@ -143,6 +162,8 @@ class Container0(QWidget):
 
         # grid location
         self.grid_location = QLineEdit()
+        msg = "Enter alphanumeric locations separated by a comma"
+        self.grid_location.setStatusTip(msg)
         layout.addRow("Grid Location", self.grid_location)
 
         # box color
@@ -173,13 +194,41 @@ class Container0(QWidget):
         self.add_sample = QPushButton('Add Sample', self)
         layout.addWidget(self.add_sample)
 
+        self.stack1.setLayout(layout)
+
+
+    def on_status_btn_changed(self):
+        if self.checkin.isChecked() == True:
+            msg = f"{self.checkin.text()} Samples"
+            self.add_sample.setText(msg)
+        else:
+            msg = f"{self.checkout.text()} Samples"
+            self.add_sample.setText(msg)
+
+
+    def signals(self):
+
+        # check-in radio button signal
+        self.checkin.toggled.connect(self.on_status_btn_changed)
+
+        # checkout radio button signal
+        self.checkout.toggled.connect(self.on_status_btn_changed)
+
         # study combobox signal
         self.study.currentTextChanged.connect(self.on_study_combobox_change)
+
+        # visit combobox signal
+
+        # freezer combobox signal
 
         # add sample signal
         # self.add_sample.clicked.connect(self.on_click)
 
+
+    def initial_values(self):
         # inital values
+        self.checkin.setChecked(True)
+        self.checkout.setChecked(False)
         self.combobox_data()
         self.study.addItems(list(self.study_visit_data.keys()))
         self.study.setCurrentIndex(0)
@@ -187,8 +236,7 @@ class Container0(QWidget):
         self.freezer.addItems(list(self.freezer_data.keys()))
         self.freezer.setCurrentIndex(0)
         self.shelf.addItems(list(self.freezer_data[list(self.freezer_data)[0]]))
-
-        self.stack1.setLayout(layout)
+        self.personnel.addItems(self.personnel_data)
 
 
     def combobox_data(self):
@@ -225,14 +273,14 @@ class Container0(QWidget):
             '+7 Fridge': ['1', '2', '3', '4']
         }
 
-        self.personnel_data = {
-            'Aaron Ward': 'atw',
-            'Katrina Carter': 'kjc',
-            'Jessica Muer': 'jdm',
-            'Justin Brubaker': 'jmb',
-            'Shawn Bolin': 'SEB',
-            'William Schrage': 'wgs'
-        }
+        self.personnel_data = [
+            'Aaron Ward',
+            'Katrina Carter',
+            'Jessica Muer',
+            'Justin Brubaker',
+            'Shawn Bolin',
+            'William Schrage'
+        ]
 
 
     def on_study_combobox_change(self, text):
@@ -264,12 +312,14 @@ class Container0(QWidget):
             msg = f"Box colors not defined for {text}"
             self.error_dialog(msg)
 
+
     def error_dialog(self, msg):
         error_msg = QMessageBox()
         error_msg.setWindowTitle("Error")
         error_msg.setText(msg)
         error_msg.setIcon(QMessageBox.Warning)
         error_msg.exec_()
+
 
     def on_click(self):
         now = datetime.datetime.now()
@@ -280,91 +330,7 @@ class Container0(QWidget):
         stock_add_date_time = now.strftime("%Y-%m-%d %H:%M")
         # d = mp.insert_prod(stock_name_inp,stock_count_inp,stock_cost_inp,stock_add_date_time)
         # print(d)
-        #Need to add the above details to table
-
-
-    def stack2UI(self):
-
-        layout = QHBoxLayout()
-        layout.setGeometry(QRect(0,300,1150,500))
-        tabs = QTabWidget()
-        self.tab1 = QWidget()
-        self.tab2 = QWidget()
-        self.tab3 = QWidget()
-
-        tabs.addTab(self.tab1, 'Add Quantity')
-        tabs.addTab(self.tab2, 'Reduce Quantity')
-        tabs.addTab(self.tab3, 'Delete Stock')
-
-        self.tab1UI()
-        self.tab2UI()
-        self.tab3UI()
-
-        layout.addWidget(tabs)
-        self.stack2.setLayout(layout)
-
-
-    def tab1UI(self):
-        layout = QFormLayout()
-        self.ok_add = QPushButton('Add Stock', self)
-        cancel = QPushButton('Cancel', self)
-
-        self.stock_name_add = QLineEdit()
-        layout.addRow("Stock Name", self.stock_name_add)
-
-        self.stock_count_add = QLineEdit()
-        layout.addRow("Quantity to add", self.stock_count_add)
-
-        layout.addWidget(self.ok_add)
-        layout.addWidget(cancel)
-        self.tab1.setLayout(layout)
-
-        self.ok_add.clicked.connect(self.call_add)       #need to write function to add quantity
-        cancel.clicked.connect(self.stock_name_add.clear)
-        cancel.clicked.connect(self.stock_count_add.clear)
-
-
-    def tab2UI(self):
-        layout = QFormLayout()
-        self.ok_red = QPushButton('Reduce Stock', self)
-        cancel = QPushButton('Cancel', self)
-
-        self.stock_name_red = QLineEdit()
-        layout.addRow("Stock Name", self.stock_name_red)
-
-        self.stock_count_red = QLineEdit()
-        layout.addRow("Quantity to reduce", self.stock_count_red)
-
-
-        layout.addWidget(self.ok_red)
-        layout.addWidget(cancel)
-        self.tab2.setLayout(layout)
-
-        self.ok_red.clicked.connect(self.call_red)  # need to write function to reduce quantity
-        cancel.clicked.connect(self.stock_name_red.clear)
-        cancel.clicked.connect(self.stock_count_red.clear)
-
-
-    def tab3UI(self):
-        layout = QFormLayout()
-        self.ok_del = QPushButton('Delete Stock', self)
-        cancel = QPushButton('Cancel', self)
-
-        self.stock_name_del = QLineEdit()
-        layout.addRow("Stock Name", self.stock_name_del)
-        layout.addWidget(self.ok_del)
-        layout.addWidget(cancel)
-        self.tab3.setLayout(layout)
-
-        self.ok_del.clicked.connect(self.call_del)  # need to write function to delete stock
-        cancel.clicked.connect(self.stock_name_del.clear)
-
-
-    def call_del(self):
-        now = datetime.datetime.now()
-        stock_del_date_time = now.strftime("%Y-%m-%d %H:%M")
-        stock_name = self.stock_name_del.text().replace(' ','_').lower()
-        mp.remove_stock(stock_name,stock_del_date_time)
+        # TODO: add the above details to table
 
 
     def call_red(self):
@@ -388,7 +354,7 @@ class Container0(QWidget):
         mp.update_quantity(stock_name, stock_val, stock_call_add_date_time)
 
 
-    def stack3UI(self):
+    def stack2UI(self):
 
         table = mp.show_stock()
         print('show')
@@ -419,7 +385,7 @@ class Container0(QWidget):
         layout.addWidget(self.srb)
         layout.addWidget(self.lbl3)
         self.srb.clicked.connect(self.show_search)
-        self.stack3.setLayout(layout)
+        self.stack2.setLayout(layout)
 
 
     def show_search(self):
@@ -451,7 +417,7 @@ class Container0(QWidget):
             self.lbl3.setText('No valid information in database.')
 
 
-    def stack4UI(self):
+    def stack3UI(self):
         layout = QVBoxLayout()
         self.srt = QPushButton()
         self.srt.setText("Get Transaction History.")
@@ -483,7 +449,7 @@ class Container0(QWidget):
         layout.addWidget(self.srt)
         layout.addWidget(self.lbl4)
         self.srt.clicked.connect(self.show_trans_history)
-        self.stack4.setLayout(layout)
+        self.stack3.setLayout(layout)
 
 
     def show_trans_history(self):
@@ -538,7 +504,6 @@ class Container0(QWidget):
             self.lbl4.setText('Transaction History.')
         else:
             self.lbl4.setText('No valid information found.')
-
 
 
     def display(self, i):
