@@ -1,14 +1,18 @@
-from PyQt5 import QtWidgets
+import sys
 import os
 import datetime
 import manipulation as mp
-import init_db
+import sqlite3
+
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QComboBox
+from PyQt5.QtWidgets import QSpinBox
 from PyQt5.QtCore import QRect
 from PyQt5.QtWidgets import QTabWidget
 from PyQt5.QtWidgets import QTableWidget
 from PyQt5.QtWidgets import QTableWidgetItem
 from PyQt5.QtWidgets import QVBoxLayout
-from PyQt5.QtCore import QDate
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QCalendarWidget
 from PyQt5.QtWidgets import QFormLayout
@@ -20,7 +24,6 @@ from PyQt5.QtWidgets import QStackedWidget
 from PyQt5.QtWidgets import (QWidget, QPushButton,QMainWindow,
                              QHBoxLayout, QApplication,QAction,QFileDialog)
 
-import sqlite3
 
 try:
     conn = sqlite3.connect('stock.db')
@@ -57,40 +60,38 @@ class Login(QtWidgets.QDialog):
             QtWidgets.QMessageBox.warning(
                 self, 'Error', 'Bad user or password')
 
-class Example(QMainWindow):
 
-
+class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
         self.initUI()
 
     def initUI(self):
-        self.st = stackedExample()
+        self.st = Container0()
         exitAct = QAction(QIcon('exit_icon.png'), 'Exit', self)
         exitAct.setShortcut('Ctrl+Q')
         exitAct.setStatusTip('Exit application')
         exitAct.triggered.connect(self.close)
 
         self.statusBar()
-
+        self.setWindowTitle('Schrage Lab Sample Inventory')
         toolbar = self.addToolBar('Exit')
         toolbar.addAction(exitAct)
 
         self.setCentralWidget(self.st)
 
-        self.show()
 
-class stackedExample(QWidget):
+class Container0(QWidget):
     def __init__(self):
 
-        super(stackedExample, self).__init__()
+        super(Container0, self).__init__()
         self.leftlist = QListWidget()
         self.leftlist.setFixedWidth(250)
-        self.leftlist.insertItem(0, 'Add Stock')
-        self.leftlist.insertItem(1, 'Manage Stock')
-        self.leftlist.insertItem(2, 'View Stock')
-        self.leftlist.insertItem(3, 'View Transaction History')
+        self.leftlist.insertItem(0, 'Check-in Samples')
+        self.leftlist.insertItem(1, 'Checkout Samples')
+        self.leftlist.insertItem(2, 'View Samples')
+        self.leftlist.insertItem(3, 'View Sample History')
 
         self.stack1 = QWidget()
         self.stack2 = QWidget()
@@ -115,35 +116,160 @@ class stackedExample(QWidget):
         self.setLayout(hbox)
         self.leftlist.currentRowChanged.connect(self.display)
         self.setGeometry(500,350, 200, 200)
-        self.setWindowTitle('Stock Management')
-        self.show()
 
 
     def stack1UI(self):
         layout = QFormLayout()
 
+        # study combobox
+        self.study = QComboBox()
+        layout.addRow("Study", self.study)
 
-        self.ok = QPushButton('Add Stock', self)
-        cancel = QPushButton('Cancel', self)
+        # study visit combobox
+        self.visit = QComboBox()
+        layout.addRow("Study Visit", self.visit)
 
-        self.stock_name = QLineEdit()
-        layout.addRow("Stock Name", self.stock_name)
+        # time point
+        self.time_point = QComboBox()
+        layout.addRow("Time Point", self.time_point)
 
-        self.stock_count = QLineEdit()
-        layout.addRow("Quantity", self.stock_count)
+        # sample ID
+        self.sample_id = QLineEdit()
+        layout.addRow("Sample ID", self.sample_id)
 
-        self.stock_cost = QLineEdit()
-        layout.addRow("Cost of Stock (per item)", self.stock_cost)
+        # sample quantity
+        self.quantity = QSpinBox()
+        layout.addRow("Sample Quantity", self.quantity)
 
-        layout.addWidget(self.ok)
-        layout.addWidget(cancel)
+        # grid location
+        self.grid_location = QLineEdit()
+        layout.addRow("Grid Location", self.grid_location)
 
-        self.ok.clicked.connect(self.on_click)
+        # box color
+        self.box_color = QComboBox()
+        layout.addRow("Sample Box Color", self.box_color)
 
-        cancel.clicked.connect(self.stock_name.clear)
-        cancel.clicked.connect(self.stock_cost.clear)
-        cancel.clicked.connect(self.stock_count.clear)
+        # box ID
+        self.box_id = QSpinBox()
+        layout.addRow("Sample Box ID", self.box_id)
+
+        # freezer
+        self.freezer = QComboBox()
+        layout.addRow("Freezer", self.freezer)
+
+        # shelf
+        self.shelf = QComboBox()
+        layout.addRow("Shelf", self.shelf)
+
+        # checked in/out by
+        self.personnel = QComboBox()
+        layout.addRow("Checked by:", self.personnel)
+
+        # date checked in/out
+        self.sample_date = QCalendarWidget()
+        layout.addRow("Sample Date", self.sample_date)
+
+        # add sample
+        self.add_sample = QPushButton('Add Sample', self)
+        layout.addWidget(self.add_sample)
+
+        # study combobox signal
+        self.study.currentTextChanged.connect(self.on_study_combobox_change)
+
+        # add sample signal
+        # self.add_sample.clicked.connect(self.on_click)
+
+        # inital values
+        self.combobox_data()
+        self.study.addItems(list(self.study_visit_data.keys()))
+        self.study.setCurrentIndex(0)
+        self.on_study_combobox_change(self.study.currentText())
+        self.freezer.addItems(list(self.freezer_data.keys()))
+        self.freezer.setCurrentIndex(0)
+        self.shelf.addItems(list(self.freezer_data[list(self.freezer_data)[0]]))
+
         self.stack1.setLayout(layout)
+
+
+    def combobox_data(self):
+        self.study_visit_data = {
+            '2011-0199': ['ROV', 'EDD'],
+            '2015-0197': ['Saline', 'Placebo', 'LNMMA', 'Ambrisentan'],
+            '2019-0361': ['Screening', 'OGTT'],
+            '2019-0838': ['Screening'],
+            '2020-0336': ['Not defined yet']
+        }
+
+        self.visit_time_data = {
+            'ROV': ['0'],
+            'EDD': ['0'],
+            'Saline': ['0', '10', '20', '30', '45', '60', '75', '90', '105', '120'],
+            'Placebo': ['0', '1', '10', '20', '30', '45', '60', '75', '90', '105', '120'],
+            'LNMMA': ['0', '10', '20', '30', '45', '60', '75', '90', '105', '120'],
+            'Ambrisentan': ['0', '1', '10', '20', '30', '45', '60', '75', '90', '105', '120'],
+            'Screening': ['0'],
+            'OGTT': ['0', '5', '10', '20', '30', '45', '60']
+        }
+
+        self.box_color_data = {
+            '2011-0199': ['Red', 'Green', 'Yellow'],
+            '2015-0197': ['Red', 'Green'],
+            '2019-0361': ['Red', 'Green', 'Yellow'],
+            '2019-0838': ['Red', 'Green', 'Yellow'],
+            '2020-0336': ['Not defined yet']
+        }
+
+        self.freezer_data = {
+            '-80 Freezer': ['1', '2', '3', '4'],
+            '-20 Freezer': ['1', '2', '3', '4'],
+            '+7 Fridge': ['1', '2', '3', '4']
+        }
+
+        self.personnel_data = {
+            'Aaron Ward': 'atw',
+            'Katrina Carter': 'kjc',
+            'Jessica Muer': 'jdm',
+            'Justin Brubaker': 'jmb',
+            'Shawn Bolin': 'SEB',
+            'William Schrage': 'wgs'
+        }
+
+
+    def on_study_combobox_change(self, text):
+        # add visits
+        try:
+            self.visit.clear()
+            self.visit.addItems(self.study_visit_data[text])
+            self.visit.setCurrentIndex(0)
+        except:
+            msg = f"Study visits not defined for {text}"
+            self.error_dialog(msg)
+
+
+        # add time points
+        try:
+            self.time_point.clear()
+            self.time_point.addItems(self.visit_time_data[self.study_visit_data[text][0]])
+            self.time_point.setCurrentIndex(0)
+        except:
+            msg = f"Time points not defined for {text} {self.study_visit_data[text]}"
+            self.error_dialog(msg)
+
+        # add box colors
+        try:
+            self.box_color.clear()
+            self.box_color.addItems(self.box_color_data[text])
+            self.box_color.setCurrentIndex(0)
+        except:
+            msg = f"Box colors not defined for {text}"
+            self.error_dialog(msg)
+
+    def error_dialog(self, msg):
+        error_msg = QMessageBox()
+        error_msg.setWindowTitle("Error")
+        error_msg.setText(msg)
+        error_msg.setIcon(QMessageBox.Warning)
+        error_msg.exec_()
 
     def on_click(self):
         now = datetime.datetime.now()
@@ -152,9 +278,10 @@ class stackedExample(QWidget):
         stock_cost_inp = int(self.stock_cost.text())
         #print(stock_name_inp,stock_count_inp,stock_cost_inp)
         stock_add_date_time = now.strftime("%Y-%m-%d %H:%M")
-        d = mp.insert_prod(stock_name_inp,stock_count_inp,stock_cost_inp,stock_add_date_time)
-        print(d)
+        # d = mp.insert_prod(stock_name_inp,stock_count_inp,stock_cost_inp,stock_add_date_time)
+        # print(d)
         #Need to add the above details to table
+
 
     def stack2UI(self):
 
@@ -176,6 +303,7 @@ class stackedExample(QWidget):
         layout.addWidget(tabs)
         self.stack2.setLayout(layout)
 
+
     def tab1UI(self):
         layout = QFormLayout()
         self.ok_add = QPushButton('Add Stock', self)
@@ -194,6 +322,7 @@ class stackedExample(QWidget):
         self.ok_add.clicked.connect(self.call_add)       #need to write function to add quantity
         cancel.clicked.connect(self.stock_name_add.clear)
         cancel.clicked.connect(self.stock_count_add.clear)
+
 
     def tab2UI(self):
         layout = QFormLayout()
@@ -215,6 +344,7 @@ class stackedExample(QWidget):
         cancel.clicked.connect(self.stock_name_red.clear)
         cancel.clicked.connect(self.stock_count_red.clear)
 
+
     def tab3UI(self):
         layout = QFormLayout()
         self.ok_del = QPushButton('Delete Stock', self)
@@ -229,11 +359,13 @@ class stackedExample(QWidget):
         self.ok_del.clicked.connect(self.call_del)  # need to write function to delete stock
         cancel.clicked.connect(self.stock_name_del.clear)
 
+
     def call_del(self):
         now = datetime.datetime.now()
         stock_del_date_time = now.strftime("%Y-%m-%d %H:%M")
         stock_name = self.stock_name_del.text().replace(' ','_').lower()
         mp.remove_stock(stock_name,stock_del_date_time)
+
 
     def call_red(self):
         now = datetime.datetime.now()
@@ -246,7 +378,6 @@ class stackedExample(QWidget):
             mp.update_quantity(stock_name, stock_val, stock_red_date_time)
         except Exception:
             print('Exception')
-
 
 
     def call_add(self):
@@ -290,6 +421,7 @@ class stackedExample(QWidget):
         self.srb.clicked.connect(self.show_search)
         self.stack3.setLayout(layout)
 
+
     def show_search(self):
         if self.View.rowCount()>1:
             for i in range(1,self.View.rowCount()):
@@ -317,6 +449,7 @@ class stackedExample(QWidget):
             self.lbl3.setText('Viewing Stock Database.')
         else:
             self.lbl3.setText('No valid information in database.')
+
 
     def stack4UI(self):
         layout = QVBoxLayout()
@@ -351,6 +484,7 @@ class stackedExample(QWidget):
         layout.addWidget(self.lbl4)
         self.srt.clicked.connect(self.show_trans_history)
         self.stack4.setLayout(layout)
+
 
     def show_trans_history(self):
         if self.Trans.rowCount()>1:
@@ -414,11 +548,10 @@ class stackedExample(QWidget):
 
 
 if __name__ == '__main__':
-
-    import sys
     app = QtWidgets.QApplication(sys.argv)
-    login = Login()
+    # login = Login()
 
-    if login.exec_() == QtWidgets.QDialog.Accepted:
-        window = Example()
-        sys.exit(app.exec_())
+    # if login.exec_() == QtWidgets.QDialog.Accepted:
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
