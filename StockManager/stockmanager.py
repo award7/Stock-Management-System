@@ -158,7 +158,7 @@ class Container0(QWidget):
 
         # sample quantity
         self.quantity = QSpinBox()
-        layout.addRow("Sample Quantity", self.quantity)
+        layout.addRow("Sample Quantity (in tubes)", self.quantity)
 
         # grid location
         self.grid_location = QLineEdit()
@@ -197,163 +197,6 @@ class Container0(QWidget):
         self.stack1.setLayout(layout)
 
 
-    def on_status_btn_changed(self):
-        if self.checkin.isChecked() == True:
-            msg = f"{self.checkin.text()} Samples"
-            self.add_sample.setText(msg)
-        else:
-            msg = f"{self.checkout.text()} Samples"
-            self.add_sample.setText(msg)
-
-
-    def signals(self):
-
-        # check-in radio button signal
-        self.checkin.toggled.connect(self.on_status_btn_changed)
-
-        # checkout radio button signal
-        self.checkout.toggled.connect(self.on_status_btn_changed)
-
-        # study combobox signal
-        self.study.currentTextChanged.connect(self.on_study_combobox_change)
-
-        # visit combobox signal
-
-        # freezer combobox signal
-
-        # add sample signal
-        # self.add_sample.clicked.connect(self.on_click)
-
-
-    def initial_values(self):
-        # inital values
-        self.checkin.setChecked(True)
-        self.checkout.setChecked(False)
-        self.combobox_data()
-        self.study.addItems(list(self.study_visit_data.keys()))
-        self.study.setCurrentIndex(0)
-        self.on_study_combobox_change(self.study.currentText())
-        self.freezer.addItems(list(self.freezer_data.keys()))
-        self.freezer.setCurrentIndex(0)
-        self.shelf.addItems(list(self.freezer_data[list(self.freezer_data)[0]]))
-        self.personnel.addItems(self.personnel_data)
-
-
-    def combobox_data(self):
-        self.study_visit_data = {
-            '2011-0199': ['ROV', 'EDD'],
-            '2015-0197': ['Saline', 'Placebo', 'LNMMA', 'Ambrisentan'],
-            '2019-0361': ['Screening', 'OGTT'],
-            '2019-0838': ['Screening'],
-            '2020-0336': ['Not defined yet']
-        }
-
-        self.visit_time_data = {
-            'ROV': ['0'],
-            'EDD': ['0'],
-            'Saline': ['0', '10', '20', '30', '45', '60', '75', '90', '105', '120'],
-            'Placebo': ['0', '1', '10', '20', '30', '45', '60', '75', '90', '105', '120'],
-            'LNMMA': ['0', '10', '20', '30', '45', '60', '75', '90', '105', '120'],
-            'Ambrisentan': ['0', '1', '10', '20', '30', '45', '60', '75', '90', '105', '120'],
-            'Screening': ['0'],
-            'OGTT': ['0', '5', '10', '20', '30', '45', '60']
-        }
-
-        self.box_color_data = {
-            '2011-0199': ['Red', 'Green', 'Yellow'],
-            '2015-0197': ['Red', 'Green'],
-            '2019-0361': ['Red', 'Green', 'Yellow'],
-            '2019-0838': ['Red', 'Green', 'Yellow'],
-            '2020-0336': ['Not defined yet']
-        }
-
-        self.freezer_data = {
-            '-80 Freezer': ['1', '2', '3', '4'],
-            '-20 Freezer': ['1', '2', '3', '4'],
-            '+7 Fridge': ['1', '2', '3', '4']
-        }
-
-        self.personnel_data = [
-            'Aaron Ward',
-            'Katrina Carter',
-            'Jessica Muer',
-            'Justin Brubaker',
-            'Shawn Bolin',
-            'William Schrage'
-        ]
-
-
-    def on_study_combobox_change(self, text):
-        # add visits
-        try:
-            self.visit.clear()
-            self.visit.addItems(self.study_visit_data[text])
-            self.visit.setCurrentIndex(0)
-        except:
-            msg = f"Study visits not defined for {text}"
-            self.error_dialog(msg)
-
-
-        # add time points
-        try:
-            self.time_point.clear()
-            self.time_point.addItems(self.visit_time_data[self.study_visit_data[text][0]])
-            self.time_point.setCurrentIndex(0)
-        except:
-            msg = f"Time points not defined for {text} {self.study_visit_data[text]}"
-            self.error_dialog(msg)
-
-        # add box colors
-        try:
-            self.box_color.clear()
-            self.box_color.addItems(self.box_color_data[text])
-            self.box_color.setCurrentIndex(0)
-        except:
-            msg = f"Box colors not defined for {text}"
-            self.error_dialog(msg)
-
-
-    def error_dialog(self, msg):
-        error_msg = QMessageBox()
-        error_msg.setWindowTitle("Error")
-        error_msg.setText(msg)
-        error_msg.setIcon(QMessageBox.Warning)
-        error_msg.exec_()
-
-
-    def on_click(self):
-        now = datetime.datetime.now()
-        stock_name_inp = self.stock_name.text().replace(' ','_').lower()
-        stock_count_inp = int(self.stock_count.text())
-        stock_cost_inp = int(self.stock_cost.text())
-        #print(stock_name_inp,stock_count_inp,stock_cost_inp)
-        stock_add_date_time = now.strftime("%Y-%m-%d %H:%M")
-        # d = mp.insert_prod(stock_name_inp,stock_count_inp,stock_cost_inp,stock_add_date_time)
-        # print(d)
-        # TODO: add the above details to table
-
-
-    def call_red(self):
-        now = datetime.datetime.now()
-        stock_red_date_time = now.strftime("%Y-%m-%d %H:%M")
-        stock_name = self.stock_name_red.text().replace(' ','_').lower()
-        try:
-            stock_val = -(int(self.stock_count_red.text()))
-            print(stock_val)
-            print(type(stock_val))
-            mp.update_quantity(stock_name, stock_val, stock_red_date_time)
-        except Exception:
-            print('Exception')
-
-
-    def call_add(self):
-        now = datetime.datetime.now()
-        stock_call_add_date_time = now.strftime("%Y-%m-%d %H:%M")
-        stock_name = self.stock_name_add.text().replace(' ','_').lower()
-        stock_val = int(self.stock_count_add.text())
-        mp.update_quantity(stock_name, stock_val, stock_call_add_date_time)
-
-
     def stack2UI(self):
 
         table = mp.show_stock()
@@ -386,35 +229,6 @@ class Container0(QWidget):
         layout.addWidget(self.lbl3)
         self.srb.clicked.connect(self.show_search)
         self.stack2.setLayout(layout)
-
-
-    def show_search(self):
-        if self.View.rowCount()>1:
-            for i in range(1,self.View.rowCount()):
-                self.View.removeRow(1)
-
-
-        x_act = mp.show_stock()
-        x = []
-        if self.conf_text.text() != '':
-            for i in range(0,len(x_act)):
-                a = list(x_act[i])
-                if self.conf_text.text().lower() in a[0].lower():
-                    x.append(a)
-        else:
-            x = mp.show_stock()
-
-        if len(x)!=0:
-            for i in range(1,len(x)+1):
-                self.View.insertRow(i)
-                a = list(x[i-1])
-                self.View.setItem(i, 0, QTableWidgetItem(a[0].replace('_',' ').upper()))
-                self.View.setItem(i, 1, QTableWidgetItem(str(a[1])))
-                self.View.setItem(i, 2, QTableWidgetItem(str(a[2])))
-                self.View.setRowHeight(i, 50)
-            self.lbl3.setText('Viewing Stock Database.')
-        else:
-            self.lbl3.setText('No valid information in database.')
 
 
     def stack3UI(self):
@@ -450,6 +264,147 @@ class Container0(QWidget):
         layout.addWidget(self.lbl4)
         self.srt.clicked.connect(self.show_trans_history)
         self.stack3.setLayout(layout)
+
+
+    def signals(self):
+        # check-in radio button signal
+        self.checkin.toggled.connect(self.on_status_btn_changed)
+
+        # checkout radio button signal
+        self.checkout.toggled.connect(self.on_status_btn_changed)
+
+        # study combobox signal
+        self.study.currentTextChanged.connect(self.on_study_combobox_changed)
+
+        # visit combobox signal
+        self.visit.currentTextChanged.connect(self.on_visit_combobox_changed)
+
+        # freezer combobox signal
+        self.freezer.currentTextChanged.connect(self.on_freezer_combobox_changed)
+
+        # add sample signal
+        # self.add_sample.clicked.connect(self.on_click)
+
+
+    def on_status_btn_changed(self):
+        if self.checkin.isChecked() == True:
+            msg = f"{self.checkin.text()} Samples"
+            self.add_sample.setText(msg)
+        else:
+            msg = f"{self.checkout.text()} Samples"
+            self.add_sample.setText(msg)
+
+
+    def on_study_combobox_changed(self, text):
+        # add visits
+        try:
+            self.visit.clear()
+            self.visit.addItems(self.study_visit_data[text])
+            self.visit.setCurrentIndex(0)
+        except:
+            msg = f"Study visits not defined for {text}"
+            self.error_dialog(msg)
+
+        # add box colors
+        try:
+            self.box_color.clear()
+            self.box_color.addItems(self.box_color_data[text])
+            self.box_color.setCurrentIndex(0)
+        except:
+            msg = f"Box colors not defined for {text}"
+            self.error_dialog(msg)
+
+
+    def on_visit_combobox_changed(self, text):
+        # add time points
+        try:
+            self.time_point.clear()
+            self.time_point.addItems(self.visit_time_data[text])
+            self.time_point.setCurrentIndex(0)
+        except:
+            if text != "":
+                msg = f"Time points not defined for {text}"
+                self.error_dialog(msg)
+
+
+    def on_freezer_combobox_changed(self, text):
+        try:
+            self.shelf.clear()
+            self.shelf.addItems(self.freezer_data[text])
+            self.shelf.setCurrentIndex(0)
+        except:
+            if text != "":
+                msg = f"Shelves not defined for {text}"
+                self.error_dialog(msg)
+
+
+    def on_click(self):
+        stock_name_inp = self.stock_name.text().replace(' ','_').lower()
+        stock_count_inp = int(self.stock_count.text())
+        stock_cost_inp = int(self.stock_cost.text())
+        #print(stock_name_inp,stock_count_inp,stock_cost_inp)
+        stock_add_date_time = now.strftime("%Y-%m-%d %H:%M")
+
+        if self.checkin.isChecked() == True:
+            # mp.insert_prod()
+            pass
+        else:
+            # mp.remove_stock()
+            pass
+
+        # d = mp.insert_prod(stock_name_inp,stock_count_inp,stock_cost_inp,stock_add_date_time)
+        # print(d)
+        # TODO: add the above details to table
+
+
+    def call_red(self):
+        now = datetime.datetime.now()
+        stock_red_date_time = now.strftime("%Y-%m-%d %H:%M")
+        stock_name = self.stock_name_red.text().replace(' ','_').lower()
+        try:
+            stock_val = -(int(self.stock_count_red.text()))
+            print(stock_val)
+            print(type(stock_val))
+            mp.update_quantity(stock_name, stock_val, stock_red_date_time)
+        except Exception:
+            print('Exception')
+
+
+    def call_add(self):
+        now = datetime.datetime.now()
+        stock_call_add_date_time = now.strftime("%Y-%m-%d %H:%M")
+        stock_name = self.stock_name_add.text().replace(' ','_').lower()
+        stock_val = int(self.stock_count_add.text())
+        mp.update_quantity(stock_name, stock_val, stock_call_add_date_time)
+
+
+    def show_search(self):
+        if self.View.rowCount()>1:
+            for i in range(1,self.View.rowCount()):
+                self.View.removeRow(1)
+
+
+        x_act = mp.show_stock()
+        x = []
+        if self.conf_text.text() != '':
+            for i in range(0,len(x_act)):
+                a = list(x_act[i])
+                if self.conf_text.text().lower() in a[0].lower():
+                    x.append(a)
+        else:
+            x = mp.show_stock()
+
+        if len(x)!=0:
+            for i in range(1,len(x)+1):
+                self.View.insertRow(i)
+                a = list(x[i-1])
+                self.View.setItem(i, 0, QTableWidgetItem(a[0].replace('_',' ').upper()))
+                self.View.setItem(i, 1, QTableWidgetItem(str(a[1])))
+                self.View.setItem(i, 2, QTableWidgetItem(str(a[2])))
+                self.View.setRowHeight(i, 50)
+            self.lbl3.setText('Viewing Stock Database.')
+        else:
+            self.lbl3.setText('No valid information in database.')
 
 
     def show_trans_history(self):
@@ -510,6 +465,70 @@ class Container0(QWidget):
         self.Stack.setCurrentIndex(i)
 
 
+    def initial_values(self):
+        # inital values
+        self.checkin.setChecked(True)
+        self.checkout.setChecked(False)
+        self.combobox_data()
+        self.study.addItems(list(self.study_visit_data.keys()))
+        self.study.setCurrentIndex(0)
+        self.on_study_combobox_changed(self.study.currentText())
+        self.freezer.addItems(list(self.freezer_data.keys()))
+        self.freezer.setCurrentIndex(0)
+        self.shelf.addItems(list(self.freezer_data[list(self.freezer_data)[0]]))
+        self.personnel.addItems(self.personnel_data)
+
+
+    def combobox_data(self):
+        self.study_visit_data = {
+            '2011-0199': ['ROV', 'EDD'],
+            '2015-0197': ['Saline', 'Placebo', 'LNMMA', 'Ambrisentan'],
+            '2019-0361': ['Screening', 'OGTT'],
+            '2019-0838': ['Screening'],
+            '2020-0336': ['Not defined yet']
+        }
+
+        self.visit_time_data = {
+            'ROV': ['0'],
+            'EDD': ['0'],
+            'Saline': ['0', '10', '20', '30', '45', '60', '75', '90', '105', '120'],
+            'Placebo': ['0', '1', '10', '20', '30', '45', '60', '75', '90', '105', '120'],
+            'LNMMA': ['0', '10', '20', '30', '45', '60', '75', '90', '105', '120'],
+            'Ambrisentan': ['0', '1', '10', '20', '30', '45', '60', '75', '90', '105', '120'],
+            'Screening': ['0'],
+            'OGTT': ['0', '5', '10', '20', '30', '45', '60']
+        }
+
+        self.box_color_data = {
+            '2011-0199': ['Red', 'Green', 'Yellow'],
+            '2015-0197': ['Red', 'Green'],
+            '2019-0361': ['Red', 'Green', 'Yellow'],
+            '2019-0838': ['Red', 'Green', 'Yellow'],
+            '2020-0336': ['Not defined yet']
+        }
+
+        self.freezer_data = {
+            '-80 Freezer': ['1', '2', '3', '4'],
+            '-20 Freezer': ['1', '2', '3', '4'],
+            '+7 Fridge': ['1', '2', '3', '4']
+        }
+
+        self.personnel_data = [
+            'Aaron Ward',
+            'Katrina Carter',
+            'Jessica Muer',
+            'Justin Brubaker',
+            'Shawn Bolin',
+            'William Schrage'
+        ]
+
+
+    def error_dialog(self, msg):
+        error_msg = QMessageBox()
+        error_msg.setWindowTitle("Error")
+        error_msg.setText(msg)
+        error_msg.setIcon(QMessageBox.Warning)
+        error_msg.exec_()
 
 
 if __name__ == '__main__':
