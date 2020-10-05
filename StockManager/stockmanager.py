@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 import datetime
 import manipulation as mp
 import sqlite3
@@ -339,11 +340,60 @@ class Container0(QWidget):
 
 
     def on_click(self):
-        stock_name_inp = self.stock_name.text().replace(' ','_').lower()
-        stock_count_inp = int(self.stock_count.text())
-        stock_cost_inp = int(self.stock_cost.text())
-        #print(stock_name_inp,stock_count_inp,stock_cost_inp)
-        stock_add_date_time = now.strftime("%Y-%m-%d %H:%M")
+        def validation():
+            if self.study.currentText() == "":
+                msg = "Please select a study"
+                self.error_dialog(msg)
+                return 1
+            if self.visit.currentText() == "":
+                msg = "Please select a visit"
+                self.error_dialog(msg)
+                return 1
+            if self.time_point.currentText() == "":
+                msg = "Please select a time point"
+                self.error_dialog(msg)
+                return 1
+            if self.sample_id.text() == "":
+                msg = "Please enter the Sample ID"
+                self.error_dialog(msg)
+                return 1
+            if self.quantity.text() == "":
+                msg = "Please enter the sample quantity"
+                self.error_dialog(msg)
+                return 1
+
+            if self.grid_location.text() == "":
+                msg = "Please enter grid location(s) for the samples"
+                self.error_dialog(msg)
+                return 1
+            else:
+                quantity = int(self.quantity.text())
+                grid_locations = self.grid_location.text().split(',')
+                grid_count = len(grid_locations)
+
+                if quantity != grid_count:
+                    msg = f"The sample count and grid locations are not equal\n" \
+                          f"{quantity} samples entered\n" \
+                          f"{grid_count} locations entered"
+                    self.error_dialog(msg)
+                    return 1
+
+                # TODO: do regex to determine validity of all grid location IDs
+
+
+
+
+
+
+            quantity = int(self.stock_count.text())
+            stock_cost_inp = int(self.stock_cost.text())
+            # stock_add_date_time = now.strftime("%Y-%m-%d %H:%M")
+
+        result = validation()
+
+        if result == 0:
+            # do stuff
+            pass
 
         if self.checkin.isChecked() == True:
             # mp.insert_prod()
@@ -351,6 +401,8 @@ class Container0(QWidget):
         else:
             # mp.remove_stock()
             pass
+
+
 
         # d = mp.insert_prod(stock_name_inp,stock_count_inp,stock_cost_inp,stock_add_date_time)
         # print(d)
