@@ -1,6 +1,7 @@
 import sys
 import os
 import re
+import traceback
 import datetime
 import manipulation as mp
 import sqlite3
@@ -284,7 +285,7 @@ class Container0(QWidget):
         self.freezer.currentTextChanged.connect(self.on_freezer_combobox_changed)
 
         # add sample signal
-        # self.add_sample.clicked.connect(self.on_click)
+        self.add_sample.clicked.connect(self.on_add_sample_click)
 
 
     def on_status_btn_changed(self):
@@ -339,7 +340,7 @@ class Container0(QWidget):
                 self.error_dialog(msg)
 
 
-    def on_click(self):
+    def on_add_sample_click(self):
         def validation():
             if self.study.currentText() == "":
                 msg = "Please select a study"
@@ -361,7 +362,6 @@ class Container0(QWidget):
                 msg = "Please enter the sample quantity"
                 self.error_dialog(msg)
                 return 1
-
             if self.grid_location.text() == "":
                 msg = "Please enter grid location(s) for the samples"
                 self.error_dialog(msg)
@@ -378,35 +378,72 @@ class Container0(QWidget):
                     self.error_dialog(msg)
                     return 1
 
-                # TODO: do regex to determine validity of all grid location IDs
+                # return all valid grid locations
+                regex = r"([a-k](?:[1-9]|1[0-1]))\b"
+                p = re.compile(regex, re.IGNORECASE)
 
+                for location in grid_locations:
+                    result = p.match(location)
+                    if result is None:
+                        msg = f"Invalid input {location}"
+                        self.error_dialog(msg)
+                        return 1
+            if self.box_color.currentText() == "":
+                msg = "Please select a sample box color"
+                self.error_dialog(msg)
+                return 1
+            if self.box_id == "":
+                msg = "Please enter a sample box ID"
+                self.error_dialog(msg)
+                return 1
+            if self.freezer.currentText() == "":
+                msg = "Please select a freezer"
+                self.error_dialog(msg)
+                return 1
+            if self.shelf.currentText() == "":
+                msg = "Please select a freezer shelf"
+                self.error_dialog(msg)
+                return 1
+            if self.personnel.currentText() == "":
+                msg = "Please select a lab member"
+                self.error_dialog(msg)
+                return 1
+            if self.sample_date.selectedDate() == "":
+                msg = "Please select the sample date"
+                self.error_dialog(msg)
+                return 1
 
-
-
-
-
-            quantity = int(self.stock_count.text())
-            stock_cost_inp = int(self.stock_cost.text())
-            # stock_add_date_time = now.strftime("%Y-%m-%d %H:%M")
+            # if everything checks out
+            return 0
 
         result = validation()
 
-        if result == 0:
-            # do stuff
-            pass
+        if result != 0:
+            msg = f"Unknown error in {self.on_add_sample_click().__name__}"
+            self.error_dialog(msg)
+            return
+
+        # do stuff
+        # pack into dictionary
+        kwargs = {
+            'study': self.study.currentText(),
+            'visit': self.visit.currentText(),
+            'time_point': self.time_point.currentText(),
+            'sample_id': self.sample_id.text(),
+            'quantity': self.quantity.text(),
+            'grid_locations': list(self.grid_location.text().split(',')),
+            'box_color': self.box_color.currentText(),
+            'box_id': self.box_id.text(),
+            'freezer': self.freezer.currentText(),
+            'shelf': self.shelf.currentText(),
+            'personnel': self.personnel.currentText(),
+            'sample_date': self.sample_date.selectedDate().toPyDate().strftime('%m/%d/%Y')
+        }
 
         if self.checkin.isChecked() == True:
-            # mp.insert_prod()
-            pass
+            mp.insert_prod(**kwargs)
         else:
-            # mp.remove_stock()
-            pass
-
-
-
-        # d = mp.insert_prod(stock_name_inp,stock_count_inp,stock_cost_inp,stock_add_date_time)
-        # print(d)
-        # TODO: add the above details to table
+            mp.remove_stock(**kwargs)
 
 
     def call_red(self):
