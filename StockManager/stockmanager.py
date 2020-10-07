@@ -1,7 +1,6 @@
 import sys
 import os
 import re
-import traceback
 import datetime
 import manipulation as mp
 import sqlite3
@@ -74,23 +73,29 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
         self.st = Container0()
-        exitAct = QAction(QIcon('exit_icon.png'), 'Exit', self)
-        exitAct.setShortcut('Ctrl+W')
-        exitAct.setStatusTip('Exit application')
-        exitAct.triggered.connect(self.close)
+        self.setCentralWidget(self.st)
+
+        self.exitAct = QAction(QIcon('exit_icon.png'), 'Exit', self)
+        self.exitAct.setShortcut('Ctrl+W')
+        self.exitAct.setStatusTip('Exit application')
 
         self.statusBar()
         self.setWindowTitle('Schrage Lab Sample Inventory')
-        toolbar = self.addToolBar('Exit')
-        toolbar.addAction(exitAct)
+        self.toolbar = self.addToolBar('Exit')
+        self.toolbar.addAction(self.exitAct)
 
-        self.setCentralWidget(self.st)
+        self.signals()
+
+    def signals(self):
+        # exit action
+        self.exitAct.triggered.connect(self.close)
 
 
 class Container0(QWidget):
     def __init__(self):
 
         super(Container0, self).__init__()
+
         self.leftlist = QListWidget()
         self.leftlist.setFixedWidth(250)
         self.leftlist.insertItem(0, 'Check-in/Checkout Samples')
@@ -113,13 +118,10 @@ class Container0(QWidget):
         hbox = QHBoxLayout(self)
         hbox.addWidget(self.leftlist)
         hbox.addWidget(self.Stack)
-
         self.setLayout(hbox)
-        self.leftlist.currentRowChanged.connect(self.display)
-        self.setGeometry(500, 350, 200, 200)
 
         # add signals
-        self.signals()
+        self.signals() 
 
         # set initial values
         self.initial_values()
@@ -160,6 +162,7 @@ class Container0(QWidget):
 
         # sample quantity
         self.quantity = QSpinBox()
+        self.quantity.setMinimum(1)
         layout.addRow("Sample Quantity (in tubes)", self.quantity)
 
         # grid location
@@ -174,6 +177,7 @@ class Container0(QWidget):
 
         # box ID
         self.box_id = QSpinBox()
+        self.box_id.setMinimum(1)
         layout.addRow("Sample Box ID", self.box_id)
 
         # freezer
@@ -200,36 +204,47 @@ class Container0(QWidget):
 
 
     def stack2UI(self):
-
-        table = mp.show_stock()
-        print('show')
-        print(table)
         layout = QVBoxLayout()
+
+        # table
+        self.view = QTableWidget()
+        self.view.setColumnCount(12)
+        for i in range(0,12):
+            # TODO: make column width relative? expand?
+            self.view.setColumnWidth(i, 50)
+        self.view.insertRow(0)
+        col_names = ['Study',
+                     'Visit',
+                     'Time Point',
+                     'Sample ID',
+                     'Sample Date'
+                     'Quantity',
+                     'Box Color',
+                     'Box ID',
+                     'Grid Location',
+                     'Freezer',
+                     'Shelf',
+                     'Last Checked By',
+                     ]
+        for col in range(0, len(col_names)):
+            self.view.setItem(0, col, QTableWidgetItem(col_names[col]))
+        layout.addWidget(self.view)
+
         self.srb = QPushButton()
         self.srb.setText("Get Search Result.")
-        self.View = QTableWidget()
+        layout.addWidget(self.srb)
+
         self.lbl3 = QLabel()
         self.lbl_conf_text = QLabel()
         self.lbl_conf_text.setText("Enter the search keyword:")
+        layout.addWidget(self.lbl3)
+
+
         self.conf_text = QLineEdit()
 
-        self.View.setColumnCount(3)
-        self.View.setColumnWidth(0, 250)
-        self.View.setColumnWidth(1, 250)
-        self.View.setColumnWidth(2, 200)
-        self.View.insertRow(0)
-        self.View.setItem(0, 0, QTableWidgetItem('Stock Name'))
-        self.View.setItem(0, 1, QTableWidgetItem('Quantity'))
-        self.View.setItem(0, 2, QTableWidgetItem('Cost(Per Unit)'))
-
-
-
-        layout.addWidget(self.View)
         layout.addWidget(self.lbl_conf_text)
         layout.addWidget(self.conf_text)
-        layout.addWidget(self.srb)
-        layout.addWidget(self.lbl3)
-        self.srb.clicked.connect(self.show_search)
+
         self.stack2.setLayout(layout)
 
 
@@ -269,6 +284,9 @@ class Container0(QWidget):
 
 
     def signals(self):
+        # page change signal
+        self.leftlist.currentRowChanged.connect(self.display)
+
         # check-in radio button signal
         self.checkin.toggled.connect(self.on_status_btn_changed)
 
@@ -286,6 +304,10 @@ class Container0(QWidget):
 
         # add sample signal
         self.add_sample.clicked.connect(self.on_add_sample_click)
+        # TODO: add signal for 'enter' being pressed; keyEvent
+
+        # search button for view samples
+        self.srb.clicked.connect(self.show_search)
 
 
     def on_status_btn_changed(self):
@@ -368,7 +390,7 @@ class Container0(QWidget):
                 return 1
             else:
                 quantity = int(self.quantity.text())
-                grid_locations = self.grid_location.text().split(',')
+                grid_locations = self.grid_location.text().replace(" ", "").split(",")
                 grid_count = len(grid_locations)
 
                 if quantity != grid_count:
@@ -413,37 +435,32 @@ class Container0(QWidget):
                 self.error_dialog(msg)
                 return 1
 
-            # if everything checks out
-            return 0
 
         result = validation()
 
-        if result != 0:
-            msg = f"Unknown error in {self.on_add_sample_click().__name__}"
-            self.error_dialog(msg)
-            return
-
-        # do stuff
-        # pack into dictionary
-        kwargs = {
-            'study': self.study.currentText(),
-            'visit': self.visit.currentText(),
-            'time_point': self.time_point.currentText(),
-            'sample_id': self.sample_id.text(),
-            'quantity': self.quantity.text(),
-            'grid_locations': list(self.grid_location.text().split(',')),
-            'box_color': self.box_color.currentText(),
-            'box_id': self.box_id.text(),
-            'freezer': self.freezer.currentText(),
-            'shelf': self.shelf.currentText(),
-            'personnel': self.personnel.currentText(),
-            'sample_date': self.sample_date.selectedDate().toPyDate().strftime('%m/%d/%Y')
-        }
-
-        if self.checkin.isChecked() == True:
-            mp.insert_prod(**kwargs)
+        if result is not None:
+            pass
         else:
-            mp.remove_stock(**kwargs)
+            # pack into dictionary
+            kwargs = {
+                'study': self.study.currentText(),
+                'visit': self.visit.currentText(),
+                'time_point': self.time_point.currentText(),
+                'sample_id': self.sample_id.text(),
+                'quantity': self.quantity.text(),
+                'grid_locations': list(self.grid_location.text().replace(" ", "").split(',')),
+                'box_color': self.box_color.currentText(),
+                'box_id': self.box_id.text(),
+                'freezer': self.freezer.currentText(),
+                'shelf': self.shelf.currentText(),
+                'personnel': self.personnel.currentText(),
+                'sample_date': self.sample_date.selectedDate().toPyDate().strftime('%m/%d/%Y')
+            }
+
+            if self.checkin.isChecked() == True:
+                mp.insert_prod(**kwargs)
+            else:
+                mp.remove_stock(**kwargs)
 
 
     def call_red(self):
@@ -468,9 +485,9 @@ class Container0(QWidget):
 
 
     def show_search(self):
-        if self.View.rowCount()>1:
-            for i in range(1,self.View.rowCount()):
-                self.View.removeRow(1)
+        if self.view.rowCount() > 1:
+            for i in range(1, self.view.rowCount()):
+                self.view.removeRow(1)
 
 
         x_act = mp.show_stock()
@@ -485,12 +502,12 @@ class Container0(QWidget):
 
         if len(x)!=0:
             for i in range(1,len(x)+1):
-                self.View.insertRow(i)
+                self.view.insertRow(i)
                 a = list(x[i-1])
-                self.View.setItem(i, 0, QTableWidgetItem(a[0].replace('_',' ').upper()))
-                self.View.setItem(i, 1, QTableWidgetItem(str(a[1])))
-                self.View.setItem(i, 2, QTableWidgetItem(str(a[2])))
-                self.View.setRowHeight(i, 50)
+                self.view.setItem(i, 0, QTableWidgetItem(a[0].replace('_',' ').upper()))
+                self.view.setItem(i, 1, QTableWidgetItem(str(a[1])))
+                self.view.setItem(i, 2, QTableWidgetItem(str(a[2])))
+                self.view.setRowHeight(i, 50)
             self.lbl3.setText('Viewing Stock Database.')
         else:
             self.lbl3.setText('No valid information in database.')
@@ -626,5 +643,5 @@ if __name__ == '__main__':
 
     # if login.exec_() == QtWidgets.QDialog.Accepted:
     window = MainWindow()
-    window.show()
+    window.showMaximized()
     sys.exit(app.exec_())
