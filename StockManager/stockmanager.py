@@ -1,9 +1,10 @@
 import sys
+from string import ascii_uppercase
 import os
 import re
 import datetime
 import manipulation as mp
-import sqlite3
+import pandas as pd
 
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QRadioButton
@@ -29,17 +30,13 @@ from PyQt5.QtWidgets import (QWidget, QPushButton,QMainWindow,
                              QHBoxLayout, QApplication,QAction,QFileDialog)
 
 
-try:
-    conn = sqlite3.connect('stock.db')
-    c = conn.cursor()
-    c.execute("""CREATE TABLE stock (
-                name text,
-                quantity integer,
-                cost integer
-                ) """)
-    conn.commit()
-except Exception:
-    print('DB exists')
+# try:
+#     db = 'stock.db'
+#     conn = mp.dbActions(db)
+#     df = pd.read_csv(os.path.join(os.getcwd(), "sample_db_test_data.csv")).to_sql("BioSamples", conn, if_exists="replace")
+#     conn.commit()
+# except Exception:
+#     print('DB exists')
 
 
 class Login(QtWidgets.QDialog):
@@ -96,29 +93,33 @@ class Container0(QWidget):
 
         super(Container0, self).__init__()
 
-        self.leftlist = QListWidget()
-        self.leftlist.setFixedWidth(250)
-        self.leftlist.insertItem(0, 'Check-in/Checkout Samples')
-        self.leftlist.insertItem(1, 'View Samples')
-        self.leftlist.insertItem(2, 'View Sample History')
+        db = 'biosample_db.db'
+        self.db = mp.dbActions(db)
 
-        self.stack1 = QWidget()
-        self.stack2 = QWidget()
-        self.stack3 = QWidget()
+        # make main widget objects
+        self.inventory_table = QWidget()
+        self.form_fields = QWidget()
+        self.box_diagram = QWidget()
 
-        self.stack1UI()
-        self.stack2UI()
-        self.stack3UI()
+        # functions for objects
+        self.createInventoryTable()
+        self.createFormFields()
+        self.createBoxDiagram()
 
-        self.Stack = QStackedWidget(self)
-        self.Stack.addWidget(self.stack1)
-        self.Stack.addWidget(self.stack2)
-        self.Stack.addWidget(self.stack3)
+        # bottom layout
+        self.bottom_layout = QHBoxLayout()
+        self.bottom_layout.addWidget(self.form_fields)
+        self.bottom_layout.addWidget(self.box_diagram)
 
-        hbox = QHBoxLayout(self)
-        hbox.addWidget(self.leftlist)
-        hbox.addWidget(self.Stack)
-        self.setLayout(hbox)
+        # main layout
+        self.main_layout = QVBoxLayout()
+        self.main_layout.addWidget(self.inventory_table, 9)
+        self.main_layout.addLayout(self.bottom_layout, 1)
+
+        # TODO: adjust widget sizes
+
+        # set the main layout
+        self.setLayout(self.main_layout)
 
         # add signals
         self.signals() 
@@ -127,7 +128,37 @@ class Container0(QWidget):
         self.initial_values()
 
 
-    def stack1UI(self):
+    def createInventoryTable(self):
+        self.table = QTableWidget()
+        layout = QVBoxLayout()
+
+        col_names = ['Study',
+                     'Visit',
+                     'Time Point',
+                     'Sample ID',
+                     'Sample Date',
+                     'Quantity',
+                     'Box Color',
+                     'Box ID',
+                     'Grid Location',
+                     'Freezer',
+                     'Shelf',
+                     'Last Checked By',
+                     ]
+        self.table.setColumnCount(len(col_names))
+        self.table.setHorizontalHeaderLabels(col_names)
+        for col in range(0, len(col_names)):
+            # self.table.setItem(0, col, QTableWidgetItem(col_names[col]))
+            # TODO: make column width relative? expand?
+            self.table.setColumnWidth(col, 100)
+        # TODO: call initial search query to populate table
+        self.show_search()
+
+        layout.addWidget(self.table)
+        self.inventory_table.setLayout(layout)
+
+
+    def createFormFields(self):
         layout = QFormLayout()
         hbox = QHBoxLayout()
 
@@ -200,93 +231,26 @@ class Container0(QWidget):
         self.add_sample = QPushButton('Add Sample', self)
         layout.addWidget(self.add_sample)
 
-        self.stack1.setLayout(layout)
+        self.form_fields.setLayout(layout)
 
 
-    def stack2UI(self):
+    def createBoxDiagram(self):
+        self.box = QTableWidget()
         layout = QVBoxLayout()
 
-        # table
-        self.view = QTableWidget()
-        self.view.setColumnCount(12)
-        for i in range(0,12):
-            # TODO: make column width relative? expand?
-            self.view.setColumnWidth(i, 50)
-        self.view.insertRow(0)
-        col_names = ['Study',
-                     'Visit',
-                     'Time Point',
-                     'Sample ID',
-                     'Sample Date'
-                     'Quantity',
-                     'Box Color',
-                     'Box ID',
-                     'Grid Location',
-                     'Freezer',
-                     'Shelf',
-                     'Last Checked By',
-                     ]
-        for col in range(0, len(col_names)):
-            self.view.setItem(0, col, QTableWidgetItem(col_names[col]))
-        layout.addWidget(self.view)
-
-        self.srb = QPushButton()
-        self.srb.setText("Get Search Result.")
-        layout.addWidget(self.srb)
-
-        self.lbl3 = QLabel()
-        self.lbl_conf_text = QLabel()
-        self.lbl_conf_text.setText("Enter the search keyword:")
-        layout.addWidget(self.lbl3)
-
-
-        self.conf_text = QLineEdit()
-
-        layout.addWidget(self.lbl_conf_text)
-        layout.addWidget(self.conf_text)
-
-        self.stack2.setLayout(layout)
-
-
-    def stack3UI(self):
-        layout = QVBoxLayout()
-        self.srt = QPushButton()
-        self.srt.setText("Get Transaction History.")
-        self.Trans = QTableWidget()
-        self.lbl4 = QLabel()
-        self.lbl_trans_text = QLabel()
-        self.lbl_trans_text.setText("Enter the search keyword:")
-        self.trans_text = QLineEdit()
-
-        self.Trans.setColumnCount(6)
-        self.Trans.setColumnWidth(0, 150)
-        self.Trans.setColumnWidth(1, 150)
-        self.Trans.setColumnWidth(2, 150)
-        self.Trans.setColumnWidth(3, 100)
-        self.Trans.setColumnWidth(4, 100)
-        self.Trans.setColumnWidth(5, 500)
-        self.Trans.insertRow(0)
-        self.Trans.setItem(0, 0, QTableWidgetItem('Transaction ID'))
-        self.Trans.setItem(0, 1, QTableWidgetItem('Stock Name'))
-        self.Trans.setItem(0, 2, QTableWidgetItem('Transaction Type'))
-        self.Trans.setItem(0, 3, QTableWidgetItem('Date'))
-        self.Trans.setItem(0, 4, QTableWidgetItem('Time'))
-        self.Trans.setItem(0, 5, QTableWidgetItem('Transaction Specific'))
-        self.Trans.setRowHeight(0, 50)
-
-        layout.addWidget(self.Trans)
-        layout.addWidget(self.lbl_trans_text)
-        layout.addWidget(self.trans_text)
-        layout.addWidget(self.srt)
-        layout.addWidget(self.lbl4)
-        self.srt.clicked.connect(self.show_trans_history)
-        self.stack3.setLayout(layout)
+        row_names = list(ascii_uppercase[0:11])
+        self.box.setRowCount(len(row_names))
+        self.box.setColumnCount(len(row_names))
+        self.box.setRowCount(len(row_names))
+        self.box.setAlternatingRowColors(True)
+        self.box.setVerticalHeaderLabels(row_names)
+        # for row in range(0, len(row_names)):
+        #     self.box.setColumnWidth(row, 50)
+        layout.addWidget(self.box)
+        self.box_diagram.setLayout(layout)
 
 
     def signals(self):
-        # page change signal
-        self.leftlist.currentRowChanged.connect(self.display)
-
         # check-in radio button signal
         self.checkin.toggled.connect(self.on_status_btn_changed)
 
@@ -307,7 +271,7 @@ class Container0(QWidget):
         # TODO: add signal for 'enter' being pressed; keyEvent
 
         # search button for view samples
-        self.srb.clicked.connect(self.show_search)
+        # self.srb.clicked.connect(self.show_search)
 
 
     def on_status_btn_changed(self):
@@ -458,9 +422,9 @@ class Container0(QWidget):
             }
 
             if self.checkin.isChecked() == True:
-                mp.insert_prod(**kwargs)
+                self.db.insert_sample(**kwargs)
             else:
-                mp.remove_stock(**kwargs)
+                self.db.remove_sample(**kwargs)
 
 
     def call_red(self):
@@ -471,7 +435,7 @@ class Container0(QWidget):
             stock_val = -(int(self.stock_count_red.text()))
             print(stock_val)
             print(type(stock_val))
-            mp.update_quantity(stock_name, stock_val, stock_red_date_time)
+            # mp.update_quantity(stock_name, stock_val, stock_red_date_time)
         except Exception:
             print('Exception')
 
@@ -481,36 +445,42 @@ class Container0(QWidget):
         stock_call_add_date_time = now.strftime("%Y-%m-%d %H:%M")
         stock_name = self.stock_name_add.text().replace(' ','_').lower()
         stock_val = int(self.stock_count_add.text())
-        mp.update_quantity(stock_name, stock_val, stock_call_add_date_time)
+        # mp.update_quantity(stock_name, stock_val, stock_call_add_date_time)
 
 
     def show_search(self):
-        if self.view.rowCount() > 1:
-            for i in range(1, self.view.rowCount()):
-                self.view.removeRow(1)
-
-
-        x_act = mp.show_stock()
-        x = []
-        if self.conf_text.text() != '':
-            for i in range(0,len(x_act)):
-                a = list(x_act[i])
-                if self.conf_text.text().lower() in a[0].lower():
-                    x.append(a)
-        else:
-            x = mp.show_stock()
-
-        if len(x)!=0:
-            for i in range(1,len(x)+1):
-                self.view.insertRow(i)
-                a = list(x[i-1])
-                self.view.setItem(i, 0, QTableWidgetItem(a[0].replace('_',' ').upper()))
-                self.view.setItem(i, 1, QTableWidgetItem(str(a[1])))
-                self.view.setItem(i, 2, QTableWidgetItem(str(a[2])))
-                self.view.setRowHeight(i, 50)
-            self.lbl3.setText('Viewing Stock Database.')
-        else:
-            self.lbl3.setText('No valid information in database.')
+        pass
+        # delete current table rows
+        # if self.table.rowCount() > 1:
+        #     for i in range(1, self.table.rowCount()):
+        #         self.table.removeRow(1)
+        #
+        #
+        # # x_act = mp.show_stock()
+        # x = []
+        # # if self.conf_text.text() != '':
+        # #     for i in range(0,len(x_act)):
+        # #         a = list(x_act[i])
+        # #         if self.conf_text.text().lower() in a[0].lower():
+        # #             x.append(a)
+        # # else:
+        # #     x = mp.show_stock()
+        # db = "stock.db"
+        # # x = mp.dbActions.create_connection(db)
+        #
+        # if len(x)!=0:
+        #     for i in range(1, len(x) + 1):
+        #         self.table.insertRow(i)
+        #         lst = list(x[i-1])
+        #         self.table.setItem(i, 0, QTableWidgetItem(str(lst[0])))
+        #         self.table.setItem(i, 1, QTableWidgetItem(str(lst[1])))
+        #         self.table.setItem(i, 2, QTableWidgetItem(str(lst[2])))
+        #         self.table.setRowHeight(i, 50)
+        #
+        #
+        #     self.lbl3.setText('Viewing Sample Database.')
+        # else:
+        #     self.lbl3.setText('No valid information in database.')
 
 
     def show_trans_history(self):
@@ -568,13 +538,14 @@ class Container0(QWidget):
 
 
     def display(self, i):
-        self.Stack.setCurrentIndex(i)
+        # self.Stack.setCurrentIndex(i)
+        pass
 
 
     def initial_values(self):
         # inital values
-        self.checkin.setChecked(True)
-        self.checkout.setChecked(False)
+        # self.checkin.setChecked(True)
+        # self.checkout.setChecked(False)
         self.combobox_data()
         self.study.addItems(list(self.study_visit_data.keys()))
         self.study.setCurrentIndex(0)
